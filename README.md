@@ -530,3 +530,29 @@ The model produces roughly twice as many false negatives as false positives (6 v
 
 This reinforces that, were this model considered for any real-world screening use, the priority improvement would be reducing false negatives, even if that means accepting a higher false positive rate, rather than optimizing for overall accuracy.
 
+## Limitations
+
+While the model achieves promising results, several limitations are important to acknowledge, both as honest scientific practice and because they meaningfully shape how (or whether) a model like this could be used in practice.
+
+**1. Indirect data leakage via A1–A10 item scores.**
+Although the precomputed `Result` column was excluded to avoid the most obvious leakage, the ten individual AQ-10 item scores (A1–A10) were retained as features. Since `Class` is deterministically derived from the sum of these exact items, the model has near-complete indirect access to the rule that generated the label. As discussed in the Model Evaluation section, this means the reported accuracy (84.5%) largely reflects the model's ability to *reconstruct the AQ-10 threshold rule* from raw responses, rather than evidence that ASD screening status can be predicted from independent behavioral or demographic signal alone. A genuinely leakage-free evaluation would require excluding A1–A10 entirely.
+
+**2. Small sample size.**
+With only 292 instances, the dataset is small for training a robust classifier, particularly once split into train/test or cross-validation folds, where a single test set may contain as few as ~58 examples. Small misclassification counts can shift reported metrics by several percentage points, making point estimates less stable than they would be with a larger dataset.
+
+**3. Demographic imbalance and fairness concerns.**
+Several features show substantial skew: gender (71% male), ethnicity (White-European alone accounts for over a third of the dataset, while several groups have fewer than 10 instances), and age (heavily weighted toward 4-year-olds). The model has limited basis to learn reliable patterns for underrepresented subgroups, raising fairness concerns about how consistently it would perform across different populations, a particularly important consideration for a tool intended for healthcare screening contexts.
+
+**4. The label itself is not an independent clinical diagnosis.**
+`Class` reflects an AQ-10 threshold score, not a formal diagnostic assessment by a clinician. The dataset therefore measures whether a model can predict a *screening* outcome, not whether it can predict ASD itself, these are related but distinct targets, and the distinction matters when interpreting what the model's performance actually demonstrates.
+
+**5. Near-constant and low-variance features.**
+Features such as `Used_App_Before` (97% "no") carry very little discriminative information at this sample size, and country/ethnicity categories with very few instances each contribute minimal reliable  signal individually, even after encoding.
+
+**6. No independent test set from a different population.**
+All evaluation was performed on data drawn from the same source distribution as the training data. Performance on this dataset does not guarantee similar performance on children from different countries, cultural contexts, or age ranges outside 4–11.
+
+**7. Limited hyperparameter exploration.**
+As the Random Forest was implemented from scratch rather than using a library such as scikit-learn, extensive hyperparameter tuning (e.g. grid search over tree depth, minimum samples per split, or number of features considered per split) was not performed to the same depth that optimized library implementations typically allow. Performance may improve further with more systematic tuning.
+
+These limitations don't undermine the project's value as a technical exercise, but they do mean its results should be read as a demonstration of method and process, not as a validated or deployment-ready screening tool.
